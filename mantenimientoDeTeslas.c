@@ -29,10 +29,12 @@ int main(int argc, char const* argv[]) {
     return EXIT_FAILURE;
   }
   FILE* file = fopen(argv[1], "r");
-  fscanf(file, "%d", nAutos);
-  fscanf(file, "%d", nEstaciones);
-  fscanf(file, "%d", capacidadXEstacion);
+  fscanf(file, "%d", &nAutos);
+  fscanf(file, "%d", &nEstaciones);
+  fscanf(file, "%d", &capacidadXEstacion);
   fclose(file);
+
+  printf("numero de estaciones %d \n",nEstaciones);
 
   sem_init(&estacionLista, 0, 0);
   sem_init(&autoListo, 0, 0);
@@ -55,11 +57,11 @@ int main(int argc, char const* argv[]) {
 
 
   for (int i = 0; i < nEstaciones; i++) {
-    phtread_join(estaciones[i],NULL);
+    pthread_join(estaciones[i],NULL);
   }
   
   for (int i = 0; i < nAutos; i++) {
-    phtread_join(autos[i],NULL);
+    pthread_join(autos[i],NULL);
   }
 
   sem_destroy(&estacionLista);
@@ -70,38 +72,36 @@ int main(int argc, char const* argv[]) {
 
 void* estacionRoutine(void* arg) {
   // int indice = *(int*)arg;
-  sem_wait(&autoListo);
-  pthread_mutex_lock(&mutex);
-  nAutosEnEstacion++;
-  printf("Vehiculo %d ha completado el mantenimiento en la estacion %d \n", indiceAuto, estacionesOcupadas+1);
-  if(nAutosEnEstacion == capacidadXEstacion){
-    estacionesOcupadas++;
+  while(1){
+    sem_wait(&autoListo);
+    pthread_mutex_lock(&mutex);
+    nAutosEnEstacion++;
+    printf("Vehiculo %d ha completado el mantenimiento en la estacion %d \n", indiceAuto, estacionesOcupadas+1);
+    if(nAutosEnEstacion == capacidadXEstacion){
+      estacionesOcupadas++;
+    }
+    pthread_mutex_unlock(&mutex);
+    sem_post(&estacionLista);    
+
   }
-  pthread_mutex_unlock(&mutex);
-
-
-
-  
-
-
 
 }
 
 
 void* autoRoutine(void* arg) {
   // int indice = *(int*)arg;
-  while(1){
+  while(indiceAuto != nAutos){
     pthread_mutex_lock(&mutex);
     if(estacionesOcupadas < nEstaciones){
       printf("Vehiculo %d ha ingresado a la estación de mantimiento %d \n", indiceAuto, estacionesOcupadas+1);
+      indiceAuto++;
+      pthread_mutex_unlock(&mutex);
       sem_post(&autoListo);
+      sem_wait(&estacionLista);
     }else{
-      printf("vehiculo %d está esperando para ingresar a alguna estación de mantenimiento", indiceAuto);
-  
+      printf("vehiculo %d está esperando para ingresar a alguna estación de mantenimiento \n", indiceAuto);
+      // pthread_mutex_unlock(&mutex);
     }
-    indiceAuto++;
-    pthread_mutex_unlock(&mutex);
-    sem_wait(&estacionLista);
   }
   
 
