@@ -1,26 +1,27 @@
 #define _XOPEN_SOURCE 600
 #include <pthread.h>
 #include <semaphore.h>
-#include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/shm.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 // Con semásforo
 
 
-sem_t estacionLista;
-sem_t autoListo;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t turnoMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t turnoCond   = PTHREAD_COND_INITIALIZER;
 
-int nAutos = 0, nEstaciones = 0, capacidadXEstacion = 0, estacionesOcupadas = 0, indiceAuto = 1, nAutosEnEstacion;
+sem_t* semasforosEstacion;
+sem_t semasEsperaAutos;
 
-void* estacionRoutine(void* arg);
+int nAutos = 0, nEstaciones = 0, capacidadXEstacion = 0;
+int turnoAuto = 1;
+
+char* tareas[] = {"BATERÍA", "MOTOR", "DIRECCIÓN", "SISTEMA DE NAVEGACIÓN"};
+
+// void* estacionRoutine(void* arg);
 void* autoRoutine(void* arg);
 
 int main(int argc, char const* argv[]) {
@@ -29,80 +30,114 @@ int main(int argc, char const* argv[]) {
     return EXIT_FAILURE;
   }
   FILE* file = fopen(argv[1], "r");
+  if (!file) {
+    perror("Error al leer el archivo \n");
+    return EXIT_FAILURE;
+  }
   fscanf(file, "%d", &nAutos);
   fscanf(file, "%d", &nEstaciones);
   fscanf(file, "%d", &capacidadXEstacion);
   fclose(file);
 
-  printf("numero de estaciones %d \n",nEstaciones);
+  //printf("numero de estaciones %d \n", nEstaciones);
 
-  sem_init(&estacionLista, 0, 0);
-  sem_init(&autoListo, 0, 0);
+  semasforosEstacion = (sem_t*)malloc(sizeof(sem_t) * nEstaciones);
+  if (!semasforosEstacion) {
+    perror(
+        "No se pudo reservar memoria para los semasforos de las estaciones \n");
+    return EXIT_FAILURE;
+  }
 
+  sem_init(&semasEsperaAutos,0,0);
 
-  pthread_t estaciones[nEstaciones];
+  for (int i = 0; i < nEstaciones; i++) {
+    sem_init(&semasforosEstacion[i], 0, capacidadXEstacion);
+  }
+
   pthread_t autos[nAutos];
+  int* indiceAuto;
 
-  for (int i = 0; i < nEstaciones; i++) {
-    // int* indice;
-    // *indice = i + 1;
-    pthread_create(&estaciones[i], NULL, estacionRoutine, NULL);
-  }
+  srand(time(NULL));
 
   for (int i = 0; i < nAutos; i++) {
-    // int* indice;
-    // *indice = i + 1;
-    pthread_create(&autos[i], NULL, autoRoutine,NULL);
-  }
-
-
-  for (int i = 0; i < nEstaciones; i++) {
-    pthread_join(estaciones[i],NULL);
-  }
-  
-  for (int i = 0; i < nAutos; i++) {
-    pthread_join(autos[i],NULL);
-  }
-
-  sem_destroy(&estacionLista);
-  sem_destroy(&autoListo);
-  return 0;
-}
-
-
-void* estacionRoutine(void* arg) {
-  // int indice = *(int*)arg;
-  while(1){
-    sem_wait(&autoListo);
-    pthread_mutex_lock(&mutex);
-    nAutosEnEstacion++;
-    printf("Vehiculo %d ha completado el mantenimiento en la estacion %d \n", indiceAuto, estacionesOcupadas+1);
-    if(nAutosEnEstacion == capacidadXEstacion){
-      estacionesOcupadas++;
+    indiceAuto = malloc(sizeof(int));
+    if (!indiceAuto) {
+      printf("no se pudo guardar memoria para auto indice: %d ", i + 1);
+      return EXIT_FAILURE;
     }
-    pthread_mutex_unlock(&mutex);
-    sem_post(&estacionLista);    
-
+    *indiceAuto = i + 1;
+    pthread_create(&autos[i], NULL, autoRoutine, (void*)indiceAuto);
   }
 
+
+  for (int i = 0; i < nAutos; i++) {
+    pthread_join(autos[i], NULL);
+  }
+
+  printf("Todos los vehículos han completado su mantenimiento y están listos para volver a la carretera \n");
+
+  for (int i = 0; i < nEstaciones; i++) {
+    sem_destroy(&semasforosEstacion[i]);
+  }
+
+  free(semasforosEstacion);
+  return EXIT_SUCCESS;
 }
 
 
 void* autoRoutine(void* arg) {
-  // int indice = *(int*)arg;
-  while(indiceAuto != nAutos){
-    pthread_mutex_lock(&mutex);
-    if(estacionesOcupadas < nEstaciones){
-      printf("Vehiculo %d ha ingresado a la estación de mantimiento %d \n", indiceAuto, estacionesOcupadas+1);
-      indiceAuto++;
+  int indiceAuto = *(int*)arg;
+  free(arg);
+
+  pthread_mutex_lock(&turnoMutex);
+  while(indiceAuto != turnoAuto){
+    pthread_cond_wait(&turnoCond, &turnoMutex);
+  }
+  pthread_mutex_lock(&mutex);
+  turnoAuto++;
+  pthread_mutex_unlock(&mutex);
+  pthread_cond_broadcast(&turnoCond);
+  pthread_mutex_unlock(&turnoMutex);
+
+
+  int estacionAsignada = -1;
+
+  while (estacionAsignada < 0) {
+    for (int i = 0; i < nEstaciones; ++i) {
+      if (sem_trywait(&semasforosEstacion[i]) == 0) {
+        estacionAsignada = i+1;
+        pthread_mutex_lock(&mutex);
+        printf("Vehículo %d ha ingresado a la estación de mantenimiento %d.  \n", indiceAuto, estacionAsignada);
+        pthread_mutex_unlock(&mutex);
+        break;
+      }
+    }
+
+    if (estacionAsignada < 0) {
+      pthread_mutex_lock(&mutex);
+      printf("Vehículo %d está esperando para ingresar a alguna estación de mantenimiento.\n",indiceAuto);
       pthread_mutex_unlock(&mutex);
-      sem_post(&autoListo);
-      sem_wait(&estacionLista);
-    }else{
-      printf("vehiculo %d está esperando para ingresar a alguna estación de mantenimiento \n", indiceAuto);
-      // pthread_mutex_unlock(&mutex);
+      sem_wait(&semasEsperaAutos);
     }
   }
-  
 
+  for (int i = 0; i < 4; i++) {
+    sleep(1);
+
+    pthread_mutex_lock(&mutex);
+    printf("Vehículo %d ha iniciado el mantenimiento de la %s en la estación de mantenimiento %d. \n",indiceAuto, tareas[i], estacionAsignada);
+    pthread_mutex_unlock(&mutex);
+    // sleep(3);//para más realismo
+    pthread_mutex_lock(&mutex);
+    printf("Vehículo %d ha completado el mantenimiento de la %s en la estación de mantenimiento de su %d. \n",indiceAuto, tareas[i], estacionAsignada);
+    pthread_mutex_unlock(&mutex);
+    
+  }
+  pthread_mutex_lock(&mutex);
+  printf("Vehículo %d ha completado TODO su mantenimiento \n",indiceAuto);
+  pthread_mutex_unlock(&mutex);
+  sem_post(&semasforosEstacion[estacionAsignada-1]);
+  sem_post(&semasEsperaAutos);
+
+  pthread_exit(NULL);
 }
