@@ -23,8 +23,10 @@ char* tareas[] = {"BATERÍA", "MOTOR", "DIRECCIÓN", "SISTEMA DE NAVEGACIÓN"};
 
 // void* estacionRoutine(void* arg);
 void* autoRoutine(void* arg);
+double timeDiff(struct timespec start, struct timespec end);
 
 int main(int argc, char const* argv[]) {
+
   if (argc < 2) {
     perror("Faltan argumentos \n");
     return EXIT_FAILURE;
@@ -38,6 +40,11 @@ int main(int argc, char const* argv[]) {
   fscanf(file, "%d", &nEstaciones);
   fscanf(file, "%d", &capacidadXEstacion);
   fclose(file);
+
+  struct timespec startTime, endTime;
+
+  //Tiempo inicial
+  clock_gettime(CLOCK_MONOTONIC, &startTime);
 
   //printf("numero de estaciones %d \n", nEstaciones);
 
@@ -73,8 +80,14 @@ int main(int argc, char const* argv[]) {
   for (int i = 0; i < nAutos; i++) {
     pthread_join(autos[i], NULL);
   }
+  
+  clock_gettime(CLOCK_MONOTONIC, &endTime);
 
+  double elapsed = timeDiff(startTime, endTime);
+  printf("Tiempo total de ejecución: %.3f segundos\n", elapsed);
+  
   printf("Todos los vehículos han completado su mantenimiento y están listos para volver a la carretera \n");
+
 
   for (int i = 0; i < nEstaciones; i++) {
     sem_destroy(&semasforosEstacion[i]);
@@ -122,7 +135,7 @@ void* autoRoutine(void* arg) {
   }
 
   for (int i = 0; i < 4; i++) {
-    sleep(1);
+    //sleep(1);
 
     pthread_mutex_lock(&mutex);
     printf("Vehículo %d ha iniciado el mantenimiento de la %s en la estación de mantenimiento %d. \n",indiceAuto, tareas[i], estacionAsignada);
@@ -140,4 +153,10 @@ void* autoRoutine(void* arg) {
   sem_post(&semasEsperaAutos);
 
   pthread_exit(NULL);
+}
+
+double timeDiff(struct timespec start, struct timespec end) {
+    double sec = (double)(end.tv_sec - start.tv_sec);
+    double nsec = (double)(end.tv_nsec - start.tv_nsec);
+    return sec + nsec / 1e9;
 }
