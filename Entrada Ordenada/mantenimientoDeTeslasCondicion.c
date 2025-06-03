@@ -20,7 +20,6 @@ int turnoAuto = 1;
 char* tareas[] = {"BATERÍA", "MOTOR", "DIRECCIÓN", "SISTEMA DE NAVEGACIÓN"};
 
 void* autoRoutine(void* arg);
-double timeDiff(struct timespec start, struct timespec end);
 
 int main(int argc, char const* argv[]) {
     if (argc < 2) {
@@ -39,9 +38,6 @@ int main(int argc, char const* argv[]) {
     fscanf(file, "%d", &capacidadXEstacion);
     fclose(file);
 
-    struct timespec startTime, endTime;
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
-
     capacidadEstaciones = malloc(sizeof(int) * nEstaciones);
     for (int i = 0; i < nEstaciones; i++) {
         capacidadEstaciones[i] = capacidadXEstacion;
@@ -59,10 +55,6 @@ int main(int argc, char const* argv[]) {
     for (int i = 0; i < nAutos; i++) {
         pthread_join(autos[i], NULL);
     }
-
-    clock_gettime(CLOCK_MONOTONIC, &endTime);
-    double elapsed = timeDiff(startTime, endTime);
-    printf("Tiempo total de ejecución: %.3f segundos\n", elapsed);
 
     printf("Todos los vehículos han completado su mantenimiento.\n");
 

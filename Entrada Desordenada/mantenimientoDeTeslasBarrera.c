@@ -7,19 +7,15 @@
 #include <unistd.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t turnoMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t turnoCond   = PTHREAD_COND_INITIALIZER;
 
 pthread_barrier_t barrera;
 
 int nAutos = 0, nEstaciones = 0, capacidadXEstacion = 0;
-int turnoAuto = 1;
 
 int* capacidadEstaciones;
 char* tareas[] = {"BATERÍA", "MOTOR", "DIRECCIÓN", "SISTEMA DE NAVEGACIÓN"};
 
 void* autoRoutine(void* arg);
-double timeDiff(struct timespec start, struct timespec end);
 
 int main(int argc, char const* argv[]) {
   if (argc < 2) {
@@ -38,15 +34,7 @@ int main(int argc, char const* argv[]) {
   fscanf(file, "%d", &capacidadXEstacion);
   fclose(file);
 
-  struct timespec startTime, endTime;
-  clock_gettime(CLOCK_MONOTONIC, &startTime);
-
   capacidadEstaciones = (int*)malloc(sizeof(int) * nEstaciones);
-  if (!capacidadEstaciones) {
-    perror("No se pudo reservar memoria para las estaciones\n");
-    return EXIT_FAILURE;
-  }
-
   for (int i = 0; i < nEstaciones; i++) {
     capacidadEstaciones[i] = capacidadXEstacion;
   }
@@ -58,10 +46,6 @@ int main(int argc, char const* argv[]) {
 
   for (int i = 0; i < nAutos; i++) {
     int* indiceAuto = malloc(sizeof(int));
-    if (!indiceAuto) {
-      printf("No se pudo reservar memoria para el auto %d\n", i + 1);
-      return EXIT_FAILURE;
-    }
     *indiceAuto = i + 1;
     pthread_create(&autos[i], NULL, autoRoutine, indiceAuto);
   }
@@ -70,10 +54,6 @@ int main(int argc, char const* argv[]) {
     pthread_join(autos[i], NULL);
   }
 
-  clock_gettime(CLOCK_MONOTONIC, &endTime);
-  double elapsed = timeDiff(startTime, endTime);
-
-  printf("Tiempo total de ejecución: %.3f segundos\n", elapsed);
   printf("Todos los vehículos han completado su mantenimiento y están listos para volver a la carretera\n");
 
   pthread_barrier_destroy(&barrera);
@@ -85,17 +65,6 @@ int main(int argc, char const* argv[]) {
 void* autoRoutine(void* arg) {
   int indiceAuto = *(int*)arg;
   free(arg);
-
-  pthread_mutex_lock(&turnoMutex);
-  while (indiceAuto != turnoAuto) {
-    pthread_cond_wait(&turnoCond, &turnoMutex);
-  }
-
-  pthread_mutex_lock(&mutex);
-  turnoAuto++;
-  pthread_mutex_unlock(&mutex);
-  pthread_cond_broadcast(&turnoCond);
-  pthread_mutex_unlock(&turnoMutex);
 
   int estacionAsignada = -1;
 
@@ -137,10 +106,4 @@ void* autoRoutine(void* arg) {
   pthread_barrier_wait(&barrera);
 
   pthread_exit(NULL);
-}
-
-double timeDiff(struct timespec start, struct timespec end) {
-  double sec = (double)(end.tv_sec - start.tv_sec);
-  double nsec = (double)(end.tv_nsec - start.tv_nsec);
-  return sec + nsec / 1e9;
 }

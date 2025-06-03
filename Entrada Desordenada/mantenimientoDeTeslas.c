@@ -10,20 +10,15 @@
 
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t turnoMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t turnoCond   = PTHREAD_COND_INITIALIZER;
 
 sem_t* semasforosEstacion;
 sem_t semasEsperaAutos;
 
 int nAutos = 0, nEstaciones = 0, capacidadXEstacion = 0;
-int turnoAuto = 1;
 
 char* tareas[] = {"BATERÍA", "MOTOR", "DIRECCIÓN", "SISTEMA DE NAVEGACIÓN"};
 
-// void* estacionRoutine(void* arg);
 void* autoRoutine(void* arg);
-double timeDiff(struct timespec start, struct timespec end);
 
 int main(int argc, char const* argv[]) {
 
@@ -40,13 +35,6 @@ int main(int argc, char const* argv[]) {
   fscanf(file, "%d", &nEstaciones);
   fscanf(file, "%d", &capacidadXEstacion);
   fclose(file);
-
-  struct timespec startTime, endTime;
-
-  //Tiempo inicial
-  clock_gettime(CLOCK_MONOTONIC, &startTime);
-
-  //printf("numero de estaciones %d \n", nEstaciones);
 
   semasforosEstacion = (sem_t*)malloc(sizeof(sem_t) * nEstaciones);
   if (!semasforosEstacion) {
@@ -81,11 +69,6 @@ int main(int argc, char const* argv[]) {
     pthread_join(autos[i], NULL);
   }
   
-  clock_gettime(CLOCK_MONOTONIC, &endTime);
-
-  double elapsed = timeDiff(startTime, endTime);
-  printf("Tiempo total de ejecución: %.3f segundos\n", elapsed);
-  
   printf("Todos los vehículos han completado su mantenimiento y están listos para volver a la carretera \n");
 
 
@@ -101,17 +84,6 @@ int main(int argc, char const* argv[]) {
 void* autoRoutine(void* arg) {
   int indiceAuto = *(int*)arg;
   free(arg);
-
-  pthread_mutex_lock(&turnoMutex);
-  while(indiceAuto != turnoAuto){
-    pthread_cond_wait(&turnoCond, &turnoMutex);
-  }
-  pthread_mutex_lock(&mutex);
-  turnoAuto++;
-  pthread_mutex_unlock(&mutex);
-  pthread_cond_broadcast(&turnoCond);
-  pthread_mutex_unlock(&turnoMutex);
-
 
   int estacionAsignada = -1;
 
@@ -155,8 +127,3 @@ void* autoRoutine(void* arg) {
   pthread_exit(NULL);
 }
 
-double timeDiff(struct timespec start, struct timespec end) {
-    double sec = (double)(end.tv_sec - start.tv_sec);
-    double nsec = (double)(end.tv_nsec - start.tv_nsec);
-    return sec + nsec / 1e9;
-}
