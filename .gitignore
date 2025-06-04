@@ -1,0 +1,10 @@
+# Ignora entornos virtuales
+venv/
+__pycache__/
+*.pyc
+
+# Archivos de configuración temporales
+mantenimientoConfig.txt
+
+# Salidas de compilación
+*.out

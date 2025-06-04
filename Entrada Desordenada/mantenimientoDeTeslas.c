@@ -49,7 +49,7 @@ int main(int argc, char const* argv[]) {
     sem_init(&semasforosEstacion[i], 0, capacidadXEstacion);
   }
 
-  pthread_t autos[nAutos];
+  pthread_t *autos = (pthread_t *) malloc(sizeof(pthread_t) * nAutos);
   int* indiceAuto;
 
   srand(time(NULL));

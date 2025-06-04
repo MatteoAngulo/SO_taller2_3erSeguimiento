@@ -52,17 +52,13 @@ int main(int argc, char const* argv[]) {
     sem_init(&semasforosEstacion[i], 0, capacidadXEstacion);
   }
 
-  pthread_t autos[nAutos];
+  pthread_t *autos = (pthread_t *) malloc(sizeof(pthread_t) * nAutos);
   int* indiceAuto;
 
   srand(time(NULL));
 
   for (int i = 0; i < nAutos; i++) {
     indiceAuto = malloc(sizeof(int));
-    if (!indiceAuto) {
-      printf("no se pudo guardar memoria para auto indice: %d ", i + 1);
-      return EXIT_FAILURE;
-    }
     *indiceAuto = i + 1;
     pthread_create(&autos[i], NULL, autoRoutine, (void*)indiceAuto);
   }

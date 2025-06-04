@@ -41,7 +41,7 @@ int main(int argc, char const* argv[]) {
 
   pthread_barrier_init(&barrera, NULL, nAutos);
 
-  pthread_t autos[nAutos];
+  pthread_t *autos = (pthread_t *) malloc(sizeof(pthread_t) * nAutos);
   srand(time(NULL));
 
   for (int i = 0; i < nAutos; i++) {
