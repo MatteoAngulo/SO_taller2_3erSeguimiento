@@ -222,100 +222,6 @@ def mostrar_comparacion_programas(todos_los_resultados):
         if resultados:  # Agregar separador entre programas
             print("-" * 150)
 
-if __name__ == "__main__":
-    # Configuraciones a probar (nhilos = carros)
-    configuraciones = [
-        (10, 3, 6),      
-        (100, 6, 3),     
-        (1000, 10, 8),   
-    ]
-    
-    repeticiones = 5
-    directorio_programas = "."  # Cambia esto por la ruta de tu carpeta si es diferente
-    
-    # Obtener todos los programas C
-    programas_c = obtener_programas_c(directorio_programas)
-    
-    if not programas_c:
-        print(f"No se encontraron archivos .c en el directorio: {directorio_programas}")
-        exit(1)
-    
-    print(f"Programas C encontrados: {programas_c}")
-    print(f"Iniciando benchmark con {repeticiones} repeticiones por configuración")
-    print(f"CPU cores disponibles: {os.cpu_count()}")
-    
-    # Diccionario para almacenar resultados de todos los programas
-    todos_los_resultados = {}
-
-    # Ejecutar benchmark para cada programa
-    for programa_c in programas_c:
-        nombre_programa = os.path.splitext(programa_c)[0]  # Quitar extensión .c
-        print(f"\n" + "="*80)
-        print(f"INICIANDO BENCHMARK PARA: {programa_c}")
-        print("="*80)
-        
-        resultados_finales = []
-        
-        for carros, estaciones, carros_por_estacion in configuraciones:
-            print(f"\nEjecutando configuración: {carros} carros (hilos), {estaciones} estaciones, {carros_por_estacion} carros/estación")
-            escribir_configuracion("mantenimientoConfig.txt", carros, estaciones, carros_por_estacion)
-
-            # Listas para almacenar resultados de cada repetición
-            resultados_repeticiones = []
-
-            for i in range(repeticiones):
-                print(f"  Repetición {i+1}/{repeticiones}...", end=' ')
-                try:
-                    resultado = ejecutar_programa(programa_c, "mantenimientoConfig.txt", nombre_programa)
-                    resultados_repeticiones.append(resultado)
-                    print(f"Latencia: {resultado['latencia']:.4f}s, Throughput: {resultado['throughput']:.1f} ops/s")
-                except Exception as e:
-                    print(f"Error: {e}")
-                    continue
-
-            if not resultados_repeticiones:
-                print(f"  ERROR: No se pudieron obtener resultados para esta configuración")
-                continue
-
-            # Calcular estadísticas
-            latencias = [r['latencia'] for r in resultados_repeticiones]
-            throughputs = [r['throughput'] for r in resultados_repeticiones]
-            cpus = [r['cpu_utilizacion'] for r in resultados_repeticiones]
-            memorias = [r['memoria_promedio_mb'] for r in resultados_repeticiones]
-            threads = [r['threads_promedio'] for r in resultados_repeticiones]
-
-            resultado_config = {
-                'carros': carros,
-                'estaciones': estaciones,
-                'carros_por_estacion': carros_por_estacion,
-                'latencia_stats': calcular_estadisticas(latencias),
-                'throughput_stats': calcular_estadisticas(throughputs),
-                'cpu_stats': calcular_estadisticas(cpus),
-                'memoria_stats': calcular_estadisticas(memorias),
-                'threads_stats': calcular_estadisticas(threads)
-            }
-            
-            resultados_finales.append(resultado_config)
-
-        # Guardar resultados del programa actual
-        todos_los_resultados[programa_c] = resultados_finales
-        
-        # Mostrar resultados individuales del programa
-        if resultados_finales:
-            mostrar_tabla_detallada_programa(resultados_finales, programa_c)
-            mostrar_tabla_resumen_programa(resultados_finales, programa_c)
-            print(f"\nBenchmark de {programa_c} completado. Configuraciones probadas: {len(resultados_finales)}")
-        else:
-            print(f"\nNo se pudieron obtener resultados para {programa_c}")
-
-    # Mostrar comparación final entre todos los programas
-    if todos_los_resultados:
-        mostrar_comparacion_programas(todos_los_resultados)
-        print(f"\n" + "="*80)
-        print(f"BENCHMARK COMPLETADO PARA TODOS LOS PROGRAMAS")
-        print(f"Total de programas analizados: {len(todos_los_resultados)}")
-        print("="*80)
-    
 def exportar_a_excel_csv(todos_los_resultados):
     """Exporta todos los resultados a archivos Excel y CSV organizados"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -530,3 +436,111 @@ def generar_reporte_markdown(todos_los_resultados):
     
     print(f"📝 Reporte Markdown: {nombre_archivo}")
     return nombre_archivo
+
+if __name__ == "__main__":
+    # Configuraciones a probar (nhilos = carros)
+    configuraciones = [
+        (10, 5, 3),      
+        (100, 5, 3),     
+        (500, 5, 3),   
+    ]
+    
+    repeticiones = 5
+    directorio_programas = "."  # Cambia esto por la ruta de tu carpeta si es diferente
+    
+    # Obtener todos los programas C
+    programas_c = obtener_programas_c(directorio_programas)
+    
+    if not programas_c:
+        print(f"No se encontraron archivos .c en el directorio: {directorio_programas}")
+        exit(1)
+    
+    print(f"Programas C encontrados: {programas_c}")
+    print(f"Iniciando benchmark con {repeticiones} repeticiones por configuración")
+    print(f"CPU cores disponibles: {os.cpu_count()}")
+    
+    # Diccionario para almacenar resultados de todos los programas
+    todos_los_resultados = {}
+
+    # Ejecutar benchmark para cada programa
+    for programa_c in programas_c:
+        nombre_programa = os.path.splitext(programa_c)[0]  # Quitar extensión .c
+        print(f"\n" + "="*80)
+        print(f"INICIANDO BENCHMARK PARA: {programa_c}")
+        print("="*80)
+        
+        resultados_finales = []
+        
+        for carros, estaciones, carros_por_estacion in configuraciones:
+            print(f"\nEjecutando configuración: {carros} carros (hilos), {estaciones} estaciones, {carros_por_estacion} carros/estación")
+            escribir_configuracion("mantenimientoConfig.txt", carros, estaciones, carros_por_estacion)
+
+            # Listas para almacenar resultados de cada repetición
+            resultados_repeticiones = []
+
+            for i in range(repeticiones):
+                print(f"  Repetición {i+1}/{repeticiones}...", end=' ')
+                try:
+                    resultado = ejecutar_programa(programa_c, "mantenimientoConfig.txt", nombre_programa)
+                    resultados_repeticiones.append(resultado)
+                    print(f"Latencia: {resultado['latencia']:.4f}s, Throughput: {resultado['throughput']:.1f} ops/s")
+                except Exception as e:
+                    print(f"Error: {e}")
+                    continue
+
+            if not resultados_repeticiones:
+                print(f"  ERROR: No se pudieron obtener resultados para esta configuración")
+                continue
+
+            # Calcular estadísticas
+            latencias = [r['latencia'] for r in resultados_repeticiones]
+            throughputs = [r['throughput'] for r in resultados_repeticiones]
+            cpus = [r['cpu_utilizacion'] for r in resultados_repeticiones]
+            memorias = [r['memoria_promedio_mb'] for r in resultados_repeticiones]
+            threads = [r['threads_promedio'] for r in resultados_repeticiones]
+
+            resultado_config = {
+                'carros': carros,
+                'estaciones': estaciones,
+                'carros_por_estacion': carros_por_estacion,
+                'latencia_stats': calcular_estadisticas(latencias),
+                'throughput_stats': calcular_estadisticas(throughputs),
+                'cpu_stats': calcular_estadisticas(cpus),
+                'memoria_stats': calcular_estadisticas(memorias),
+                'threads_stats': calcular_estadisticas(threads)
+            }
+            
+            resultados_finales.append(resultado_config)
+
+        # Guardar resultados del programa actual
+        todos_los_resultados[programa_c] = resultados_finales
+        
+        # Mostrar resultados individuales del programa
+        if resultados_finales:
+            mostrar_tabla_detallada_programa(resultados_finales, programa_c)
+            mostrar_tabla_resumen_programa(resultados_finales, programa_c)
+            print(f"\nBenchmark de {programa_c} completado. Configuraciones probadas: {len(resultados_finales)}")
+        else:
+            print(f"\nNo se pudieron obtener resultados para {programa_c}")
+
+    # Mostrar comparación final entre todos los programas
+    if todos_los_resultados:
+        mostrar_comparacion_programas(todos_los_resultados)
+        print(f"\n" + "="*80)
+        print(f"BENCHMARK COMPLETADO PARA TODOS LOS PROGRAMAS")
+        print(f"Total de programas analizados: {len(todos_los_resultados)}")
+        print("="*80)
+        
+        try:
+            print("\n🔄 Exportando resultados a Excel y CSV...")
+            exportar_a_excel_csv(todos_los_resultados)
+            
+            print("\n🔄 Generando reporte en Markdown...")
+            generar_reporte_markdown(todos_los_resultados)
+            
+        except Exception as e:
+            print(f"\n❌ Error durante la exportación: {e}")
+            print("Asegúrate de tener instaladas las librerías necesarias:")
+            print("pip install pandas openpyxl")
+    else:
+        print("\n❌ No se obtuvieron resultados para exportar")
