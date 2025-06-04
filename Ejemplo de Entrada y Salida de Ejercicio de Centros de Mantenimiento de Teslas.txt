@@ -1,0 +1,29 @@
+Entrada 
+10
+3
+4
+
+Salida
+Vehículo 1 ha ingresado a la estación de mantenimiento 1.
+Vehículo 2 ha ingresado a la estación de mantenimiento 1.
+Vehículo 3 ha ingresado a la estación de mantenimiento 1.
+Vehículo 4 ha ingresado a la estación de mantenimiento 2.
+Vehículo 5 ha ingresado a la estación de mantenimiento 3.
+Vehículo 6 ha ingresado a la estación de mantenimiento 4.
+Vehículo 7 ha ingresado a la estación de mantenimiento 4.
+Vehículo 8 ha ingresado a la estación de mantenimiento 3.
+Vehículo 9 está esperando para ingresar a alguna estación de mantenimiento.
+Vehículo 10 está esperando para ingresar a alguna estación de mantenimiento.
+…
+Vehículo 7 ha completado el mantenimiento de la batería en la estación de mantenimiento 4.
+Vehículo 6 ha completado el mantenimiento de la dirección en la estación de mantenimiento 4.
+Vehículo 9 ha ingresado a la estación de mantenimiento 4.
+Vehículo 10 ha ingresado a la estación de mantenimiento 2.
+
+Vehículo 9 ha comenzado el mantenimiento de la dirección en la estación de mantenimiento 1.
+Vehículo 10 ha comenzado el mantenimiento del sistema de navegación en la estación de mantenimiento 2.
+
+Vehículo 9 ha completado el mantenimiento de la dirección en la estación de mantenimiento 1.
+Vehículo 10 ha completado el mantenimiento del sistema de navegación en la estación de mantenimiento 2.
+
+Todos los vehículos han completado su mantenimiento y están listos para volver a la carretera.
