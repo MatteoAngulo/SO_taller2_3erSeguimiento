@@ -1,12 +1,7 @@
-# Reporte de Benchmark - 2025-06-03 23:54:15
-
-## Resumen Ejecutivo
-
 - **Programas analizados**: 4
 - **Configuraciones por programa**: 3
-- **Fecha de ejecución**: 2025-06-03 23:54:15
 
-## Tabla Resumen por Programa
+## Tabla 
 
 | Programa | Config | Latencia (s) | Throughput (ops/s) | CPU (%) | Memoria (MB) |
 |----------|---------|--------------|-------------------|---------|---------------|
